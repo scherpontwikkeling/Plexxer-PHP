@@ -19,7 +19,7 @@
         }
     ],
     "autoload": {
-        "psr4" : {
+        "psr-4" : {
             "Scherpontwikkeling\\Plexxer" : "src"
         }
     }
