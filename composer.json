@@ -1,5 +1,5 @@
 {
-    "name": "Scherpontwikkeling/Plexxer",
+    "name": "scherpontwikkeling/plexxer",
     "type": "library",
     "description": "A PHP wrapper for PLEXXER cloud database service",
     "keywords": ["database", "cloud", "plexxer"],
