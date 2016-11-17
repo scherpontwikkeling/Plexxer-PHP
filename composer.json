@@ -1,0 +1,26 @@
+{
+    "name": "Scherpontwikkeling/Plexxer",
+    "type": "library",
+    "description": "A PHP wrapper for PLEXXER cloud database service",
+    "keywords": ["database", "cloud", "plexxer"],
+    "homepage": "https://plexxer.com",
+    "authors": [
+        {
+            "name":Patrick Nijkamp",
+            "email": "patrick@scherpontwikkeling.nl",
+            "role": "Developer",
+            "homepage": "https://scherpontwikkeling.nl"
+        },
+        {
+            "name": "Mark Ernst",
+            "email": "mark@scherpontwikkeling.nl",
+            "role": "Developer",
+            "homepage": "https://scherpontwikkeling.nl"
+        }
+    ],
+    "autoload": {
+        "psr4" : {
+            "Scherpontwikkeling\\Plexxer" : "src"
+        }
+    }
+}
