@@ -24,7 +24,8 @@ class Repository {
 
 		if (sizeof($result['documents']) > 0) {
 			foreach($result['documents'] as $document) {
-				$returnValue[] = new $this->sEntityClass($document);
+				$object = new $this->sEntityClass($document);
+				$returnValue[] = $object;
 			}
 		}
 
@@ -42,7 +43,8 @@ class Repository {
 		$result = $this->oPLEXXER->read($this->sEntity, $data ?? [], $query ?? []);
 
 		if (sizeof($result['documents']) > 0) {
-			return new $this->sEntityClass(array_shift($result['documents']));
+			$object = new $this->sEntityClass(array_shift($result['documents']));
+			return $object;
 		}
 
 		return false;

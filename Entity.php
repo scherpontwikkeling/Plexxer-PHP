@@ -6,6 +6,7 @@ class Entity {
 	const sEntityName = null;
 
 	public $mappedData;
+	public $mappedRelations;
 	public $changedFields = [];
 	private $validationErrors = [];
 
@@ -15,6 +16,8 @@ class Entity {
 				$this->mappedData[$field] = $value;
 			}
 		}
+
+		$this->resolveRelations();
 	}
 
 	/**
@@ -30,34 +33,37 @@ class Entity {
 	}
 
 	/**
-	 * getArray
-	 *
 	 * Return the entire document as an array
 	 *
-	 * @return (array) the document
+	 * @return array the document
 	 */
 	public function toArray($fields = []) {
-		if (empty($fields))
-			return $this->mappedData;
-		else {
-			$returnArray = [];
+		$returnArray = [];
 
-			foreach($fields as $field)
-				if (array_key_exists($field, $this->mappedData))
-					$returnArray[$field] = $this->mappedData[$field];
+		foreach($this->mappedData as $field => $value) {
+			if (!empty($fields) && !in_array($field, $fields))
+				continue;
 
-			return $returnArray;
+			if (array_key_exists($field, $this->mappedRelations)) {
+				if ($this->mappedRelations[$field] == 'many') {
+					foreach($value as $obj) {
+						$returnArray[$field][] = is_scalar($value) ? $value : $obj->toArray();
+					}
+				} else {
+					$returnArray[$field] = is_scalar($value) ? $value : $value->toArray();
+				}
+			} else {
+				$returnArray[$field] = $value;
+			}
 		}
+
+		return $returnArray;
 	}
 
 	/**
-	 * set
-	 *
-	 * Set a single field
-	 *
-	 * @param (string) name of the field
-	 * @param (mixed) value of the field
-	 * @return (bool) true if field was set, false if field does not belong to this entity
+	 * @param string name of the field
+	 * @param mixed value of the field
+	 * @return bool true if field was set, false if field does not belong to this entity
 	 */
 	public function set($field, $value) {
 		if (array_key_exists($field, $this->mappedData)) {
@@ -82,12 +88,10 @@ class Entity {
 	}
 
 	/**
-	 * fromArray
-	 *
 	 * Accepts an array with key => values and overwrites all known fields in this document with the set values
 	 *
-	 * @param (array) an array containing keys and values belonging to this entity
-	 * @return (bool) true
+	 * @param array an array containing keys and values belonging to this entity
+	 * @return bool true
 	 */
 	public function fromArray($values) {
 		foreach($values as $field => $value) {
@@ -101,11 +105,9 @@ class Entity {
 	}
 
 	/**
-	 * clone
-	 *
 	 * Clones the current document and returns the copy instance
 	 *
-	 * @return (mixed) copy on success, false on failure
+	 * @return Entity copy
 	 */
 	public function clone() {
 		$clonedData = $this->mappedData;
@@ -113,8 +115,8 @@ class Entity {
 		unset($clonedData['created']);
 		unset($clonedData['updated']);
 
-		$className = '\Plexxer\\'.$this->sEntity;
-		return new $className($this->oPLEXXER, $clonedData);
+		$className = get_class($this);
+		return new $className($clonedData);
 	}
 
 	final public function _setValidationErrors($errors) {
@@ -150,5 +152,42 @@ class Entity {
 		$this->mappedData[$field] = $value;
 
 		return $this;
+	}
+
+	public function resolveRelations() {
+		if (!empty($this->mappedRelations)) {
+			// Get the class namespace
+			$classNamespace = explode('\\', get_class($this));
+			array_pop($classNamespace);
+			$classNamespace = implode('\\', $classNamespace);
+
+			foreach($this->mappedRelations as $relation => $type) {
+				$relationClass = $classNamespace.'\\'.$relation;
+				$relationValue = $this->get($relation);
+
+				$newValue = null;
+
+				if ($type == 'many') {
+					$newValue = [];
+					foreach($relationValue as $relationData) {
+						if (!is_scalar($relationData)) {
+							$object = new $relationClass($relationData);
+
+							$newValue[] = $object;
+						}
+					}
+				} else {
+					if (!is_scalar($relationValue)) {
+						$object = new $relationClass($relationValue);
+
+						$newValue = $object;
+					} else {
+						$newValue = $relationValue;
+					}
+				}
+
+				$this->set($relation, $newValue);
+			}
+		}
 	}
 }
