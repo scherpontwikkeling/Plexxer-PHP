@@ -12,7 +12,7 @@ class Api {
 	public $gzip = false;
 	public $version = false;
 
-	function __construct($apiKey, $apiToken) {
+	public function __construct($apiKey, $apiToken) {
 		$this->apiKey = $apiKey;
 		$this->apiToken = $apiToken;
 
@@ -32,17 +32,17 @@ class Api {
 		return $this->entityManager;
 	}
 
-	function setVersion($v) {
+	public function setVersion($v) {
 		$this->version = $v;
 	}
 
-	function create($entity, $data) {
+	public function create($entity, $data) {
 		$this->apiUrl = $this->apiBaseUrl.'create/'.$this->apiKey.'/'.$entity;
 
 		return $this->request($data);
 	}
 
-	function read($entity, $data=array(), $query=array()) {
+	public function read($entity, $data=array(), $query=array()) {
 
 		$this->apiUrl = $this->apiBaseUrl.'read/'.$this->apiKey.'/'.$entity;
 
@@ -62,7 +62,7 @@ class Api {
 		return $this->request($data);
 	}
 
-	function update($entity, $data, $set=array()) {
+	public function update($entity, $data, $set=array()) {
 		$this->apiUrl = $this->apiBaseUrl.'update/'.$this->apiKey.'/'.$entity;
 
 		if (!empty($set)) {
@@ -72,7 +72,7 @@ class Api {
 		return $this->request($data);
 	}
 
-	function delete($entity, $data) {
+	public function delete($entity, $data) {
 		$this->apiUrl = $this->apiBaseUrl.'delete/'.$this->apiKey.'/'.$entity;
 
 		if (!empty($query)) {
@@ -82,7 +82,7 @@ class Api {
 		return $this->request($data);
 	}
 
-	function request($data) {
+	public function request($data) {
 		if ($this->apiUrl == null) {
 			return false;
 		}
@@ -126,7 +126,7 @@ class Api {
 		return $this->response;
 	}
 
-	function checkResponse($response) {
+	public function checkResponse($response) {
 		if (is_array($response)) {
 			if (isset($response['success'])) {
 				if ($response['success'] === true) {
