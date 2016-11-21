@@ -11,7 +11,7 @@ class Repository {
 	/** @var \Plexxer\Api $oPLEXXER */
 	private $oPLEXXER;
 
-	function __construct($entity, &$oPLEXXER) {
+	public function __construct($entity, &$oPLEXXER) {
 		$this->sEntity = constant($entity.'::sEntityName');
 		$this->sEntityClass = $entity;
 		$this->oPLEXXER = $oPLEXXER;
@@ -36,11 +36,13 @@ class Repository {
 	 * @param array $data
 	 * @param array $query
 	 *
-	 * @return Entity
+	 * @return bool|Entity
 	 */
 	public function readOne(array $data = [], array $query = []) {
 		$query['limit'] = 1;
 		$result = $this->oPLEXXER->read($this->sEntity, $data ?? [], $query ?? []);
+
+		$this->validateResponse($result);
 
 		if (sizeof($result['documents']) > 0) {
 			$object = new $this->sEntityClass(array_shift($result['documents']));
@@ -74,5 +76,16 @@ class Repository {
 		}
 
 		return false;
+	}
+
+	private function validateResponse($response) {
+		if (isset($response['success']) && $response['success'] === false) {
+			$message = 'Generic error';
+
+			if (isset($response['message']))
+				$message = $response['message'];
+
+			throw new \Exception('Database error: '.$message);
+		}
 	}
 }

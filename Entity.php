@@ -41,13 +41,21 @@ class Entity {
 		$returnArray = [];
 
 		foreach($this->mappedData as $field => $value) {
+			/** @var Entity $value */
 			if (!empty($fields) && !in_array($field, $fields))
+				continue;
+
+			if ($value === null)
 				continue;
 
 			if (array_key_exists($field, $this->mappedRelations)) {
 				if ($this->mappedRelations[$field] == 'many') {
 					foreach($value as $obj) {
-						$returnArray[$field][] = is_scalar($value) ? $value : $obj->toArray();
+						/** @var Entity $obj */
+						if ($obj === null || is_array($obj))
+							continue;
+
+						$returnArray[$field][] = is_scalar($obj) ? $obj : $obj->toArray();
 					}
 				} else {
 					$returnArray[$field] = is_scalar($value) ? $value : $value->toArray();
@@ -61,15 +69,25 @@ class Entity {
 	}
 
 	/**
-	 * @param string name of the field
-	 * @param mixed value of the field
+	 * @param string $field of the field
+	 * @param mixed $value of the field
 	 * @return bool true if field was set, false if field does not belong to this entity
 	 */
 	public function set($field, $value) {
-		if (array_key_exists($field, $this->mappedData)) {
+		if (array_key_exists($field, $this->mappedRelations)) {
 			$this->changedFields[] = $field;
-			$this->mappedData[$field] = $value;
-			return true;
+			if ($this->mappedRelations[$field] == 'one') {
+				$this->mappedData[$field] = &$value;
+			} else {
+				$this->mappedData[$field][] = &$value;
+			}
+		} else {
+			if (array_key_exists($field, $this->mappedData)) {
+				$this->changedFields[] = $field;
+				$this->mappedData[$field] = $value;
+
+				return true;
+			}
 		}
 
 		return false;
@@ -90,7 +108,7 @@ class Entity {
 	/**
 	 * Accepts an array with key => values and overwrites all known fields in this document with the set values
 	 *
-	 * @param array an array containing keys and values belonging to this entity
+	 * @param array $values an array containing keys and values belonging to this entity
 	 * @return bool true
 	 */
 	public function fromArray($values) {
@@ -167,27 +185,41 @@ class Entity {
 
 				$newValue = null;
 
-				if ($type == 'many') {
-					$newValue = [];
-					foreach($relationValue as $relationData) {
-						if (!is_scalar($relationData)) {
-							$object = new $relationClass($relationData);
+				if (!empty($relationalValue)) {
+					if ($type == 'many') {
+						$newValue = [];
+						foreach($relationValue as $relationData) {
+							if (!is_scalar($relationData)) {
+								$object = new $relationClass($relationData);
 
-							$newValue[] = $object;
+								$newValue[] = $object;
+							}
+						}
+					} else {
+						if (!is_scalar($relationValue)) {
+							$object = new $relationClass($relationValue);
+
+							$newValue = $object;
+						} else {
+							$newValue = $relationValue;
 						}
 					}
-				} else {
-					if (!is_scalar($relationValue)) {
-						$object = new $relationClass($relationValue);
 
-						$newValue = $object;
-					} else {
-						$newValue = $relationValue;
-					}
+					$this->set($relation, $newValue);
 				}
-
-				$this->set($relation, $newValue);
 			}
+		}
+	}
+
+	public function add(&$relatedEntity) {
+		/** @var $relatedEntity Entity */
+		$class = explode('\\', get_class($relatedEntity));
+		$relation = array_pop($class);
+
+		if (array_key_exists($relation, $this->mappedRelations)) {
+			$this->set($relation, $relatedEntity);
+		} else {
+			throw new \Exception('Trying to set relation "'.$relation.'" on '.get_class($this).' that doesn\'t exist"');
 		}
 	}
 }
