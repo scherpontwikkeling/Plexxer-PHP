@@ -57,7 +57,8 @@ class EntityManager {
 
 			$entity->_clearChangedFields();
 
-			// New entity
+			// Update entity
+			$updateArray = $this->_translateUpdateQuery($updateArray);
 			$response = $this->api->create($entity->_getEntityName(), $updateArray);
 
 			if (empty($response['success']) || empty($response['createdDocuments'])) {
@@ -88,6 +89,7 @@ class EntityManager {
 
 			if (!empty($updateArray)) {
 				// Update entity
+				$updateArray = $this->_translateUpdateQuery($updateArray);
 				$response = $this->api->update($entity->_getEntityName(), ['id' => $entity->getId()], $updateArray);
 				if (empty($response['success'])) {
 					$failedDocuments[] = $entity;
@@ -188,7 +190,6 @@ class EntityManager {
 
 					if (is_object($response)) {
 						$relatedChildsReferences[] = $value;
-						$entity->set($field, $response->getId());
 					} elseif (is_array($response)) {
 						$validationMessage = '';
 						foreach($response as $validationError) {
@@ -210,15 +211,36 @@ class EntityManager {
 
 						$relatedChildsReferences[] = $obj;
 
-						// Set the local ID
 						if (is_object($response)) {
-							$entity->mappedData[$field][$key] = $obj->getId();
+							// Everything went OK
 						} else {
-							throw new \Exception('Could not save a many relation due to validation errors.');
+							throw new \Exception('Could not save a many relation due to validation errors ('.print_r($response, true).').');
 						}
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Translates all objects back into ID's for relational values since an entity is never saved into the database
+	 *
+	 * @param array $updateArray the array that needs translating
+	 *
+	 * @return array the updated array
+	 */
+	private function _translateUpdateQuery($updateArray) {
+		foreach($updateArray as $key => $value) {
+			if (is_object($value)) {
+				/** @var Entity $value */
+				// Then it's an entity
+				$updateArray[$key] = $value->getId();
+			} elseif (is_array($value) && isset($value[0])) {
+				// The it's a many probably
+				$updateArray[$key] = $this->_translateUpdateQuery($value);
+			}
+		}
+
+		return $updateArray;
 	}
 }

@@ -93,14 +93,29 @@ class Entity {
 		return false;
 	}
 
+	/**
+	 * Get the ID of a document
+	 *
+	 * @return string ID of the object
+	 */
 	public function getId() {
 		return $this->get('id');
 	}
 
+	/**
+	 * Get the created unix time of the document
+	 *
+	 * @return int creation timestamp of the document
+	 */
 	public function getCreated() {
 		return $this->get('created');
 	}
 
+	/**
+	 * Get the last-updated unix time of the document
+	 *
+	 * @return int last-updated timestamp of the document
+	 */
 	public function getUpdated() {
 		return $this->get('updated');
 	}
@@ -137,6 +152,81 @@ class Entity {
 		return new $className($clonedData);
 	}
 
+	public function _setValue($field, $value) {
+		$this->changedFields[] = $field;
+		$this->mappedData[$field] = $value;
+
+		return $this;
+	}
+
+	/**
+	 * Transforms all local arrays of relations into their respective entity classes (is called automatically on creation)
+	 *
+	 * @return void
+	 */
+	public function resolveRelations() {
+		if (!empty($this->mappedRelations)) {
+			// Get the class namespace
+			$classNamespace = explode('\\', get_class($this));
+			array_pop($classNamespace);
+			$classNamespace = implode('\\', $classNamespace);
+
+			foreach($this->mappedRelations as $relation => $type) {
+				$relationClass = $classNamespace.'\\'.$relation;
+				$relationValue = $this->get($relation);
+
+				$newValue = null;
+
+				if (!empty($relationValue)) {
+					if ($type == 'many') {
+						$newValue = [];
+						foreach($relationValue as $relationData) {
+							if (is_scalar($relationData)) {
+								$relationData = ['id' => $relationData];
+							}
+
+							$object = new $relationClass($relationData);
+
+							$newValue[] = $object;
+						}
+					} else {
+						if (is_scalar($relationValue)) {
+							$relationValue = ['id' => $relationValue];
+						}
+
+						$object = new $relationClass($relationValue);
+
+						$newValue = $object;
+					}
+
+					$this->_setValue($relation, $newValue);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Add a related entity to this entity (one > many, many > many etc). Be sure to persist the parent entity and then flush. All children will be linked / created automatically.
+	 *
+	 * @param $relatedEntity
+	 *
+	 * @return bool true on success
+	 * @throws \Exception when relation does not exist in this entity
+	 */
+	public function add(&$relatedEntity) {
+		/** @var $relatedEntity Entity */
+		$class = explode('\\', get_class($relatedEntity));
+		$relation = array_pop($class);
+
+		if (array_key_exists($relation, $this->mappedRelations)) {
+			$this->set($relation, $relatedEntity);
+		} else {
+			throw new \Exception('Trying to set relation "'.$relation.'" on '.get_class($this).' that doesn\'t exist"');
+		}
+
+		return true;
+	}
+
 	final public function _setValidationErrors($errors) {
 		$this->validationErrors = $errors;
 	}
@@ -163,63 +253,5 @@ class Entity {
 		}
 
 		$this->_clearChangedFields();
-	}
-
-	function _setValue($field, $value) {
-		$this->changedFields[] = $field;
-		$this->mappedData[$field] = $value;
-
-		return $this;
-	}
-
-	public function resolveRelations() {
-		if (!empty($this->mappedRelations)) {
-			// Get the class namespace
-			$classNamespace = explode('\\', get_class($this));
-			array_pop($classNamespace);
-			$classNamespace = implode('\\', $classNamespace);
-
-			foreach($this->mappedRelations as $relation => $type) {
-				$relationClass = $classNamespace.'\\'.$relation;
-				$relationValue = $this->get($relation);
-
-				$newValue = null;
-
-				if (!empty($relationalValue)) {
-					if ($type == 'many') {
-						$newValue = [];
-						foreach($relationValue as $relationData) {
-							if (!is_scalar($relationData)) {
-								$object = new $relationClass($relationData);
-
-								$newValue[] = $object;
-							}
-						}
-					} else {
-						if (!is_scalar($relationValue)) {
-							$object = new $relationClass($relationValue);
-
-							$newValue = $object;
-						} else {
-							$newValue = $relationValue;
-						}
-					}
-
-					$this->set($relation, $newValue);
-				}
-			}
-		}
-	}
-
-	public function add(&$relatedEntity) {
-		/** @var $relatedEntity Entity */
-		$class = explode('\\', get_class($relatedEntity));
-		$relation = array_pop($class);
-
-		if (array_key_exists($relation, $this->mappedRelations)) {
-			$this->set($relation, $relatedEntity);
-		} else {
-			throw new \Exception('Trying to set relation "'.$relation.'" on '.get_class($this).' that doesn\'t exist"');
-		}
 	}
 }
