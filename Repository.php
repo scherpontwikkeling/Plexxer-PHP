@@ -3,12 +3,12 @@
 namespace Plexxer;
 
 class Repository {
-	/** @var \Plexxer\Entity $sEntityClass  */
+	/** @var Entity $sEntityClass  */
 	private $sEntityClass = null;
 
 	private $sEntity;
 
-	/** @var \Plexxer\Api $oPLEXXER */
+	/** @var Api $oPLEXXER */
 	private $oPLEXXER;
 
 	public function __construct($entity, &$oPLEXXER) {
@@ -17,6 +17,12 @@ class Repository {
 		$this->oPLEXXER = $oPLEXXER;
 	}
 
+	/**
+	 * @param array $data
+	 * @param array $query
+	 *
+	 * @return array Full of Entity objects :)
+	 */
 	public function read($data = [], $query = []) {
 		$result = $this->oPLEXXER->read($this->sEntity, $data ?? [], $query ?? []);
 
@@ -36,7 +42,7 @@ class Repository {
 	 * @param array $data
 	 * @param array $query
 	 *
-	 * @return bool|Entity
+	 * @return Entity|bool
 	 */
 	public function readOne(array $data = [], array $query = []) {
 		$query['limit'] = 1;
@@ -60,7 +66,7 @@ class Repository {
 	 * @return bool
 	 */
 	public function rollback(Entity &$entity) {
-		/** @var \Plexxer\Entity $entity */
+		/** @var Entity $entity */
 		if ($entity->get('id') !== null) {
 			$data = $this->oPLEXXER->read($entity->_getEntityName(), ['id' => $entity->get('id')]);
 

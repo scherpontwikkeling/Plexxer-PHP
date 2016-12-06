@@ -16,19 +16,23 @@ class EntityManager {
 	/**
 	 * Add an entity to the delete queue
 	 *
-	 * @param \Plexxer\Entity $entity
+	 * @param Entity $entity
 	 */
 	public function delete(Entity $entity) {
 		$this->queue['delete'][] = $entity;
+
+		return $this;
 	}
 
 	/**
 	 * Add an entity to the save queue
 	 *
-	 * @param \Plexxer\Entity $entity
+	 * @param Entity $entity
 	 */
 	public function persist(Entity &$entity) {
 		$this->queue['persist'][] = $entity;
+
+		return $this;
 	}
 
 	/**
@@ -36,14 +40,14 @@ class EntityManager {
 	 *
 	 * @param $entity
 	 *
-	 * @return array|\Plexxer\Entity
+	 * @return array|Entity
 	 */
 	public function saveEntity(&$entity) {
 		$failedDocuments = [];
 
 		$relatedChildsReferences = [];
 
-		/** @var \Plexxer\Entity $entity */
+		/** @var Entity $entity */
 		$updateArray = [];
 		if ($entity->getId() === null) {
 			foreach($entity->mappedData as $field => $value) {
@@ -143,7 +147,7 @@ class EntityManager {
 	 *
 	 * @param $entity
 	 *
-	 * @return \Plexxer\Repository
+	 * @return Repository
 	 */
 	public function getRepository($entity) {
 		return new Repository($entity, $this->api);
